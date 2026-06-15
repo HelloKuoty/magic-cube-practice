@@ -4,6 +4,7 @@ import CubeViewer from "./components/CubeViewer.vue";
 import MoveBar from "./components/MoveBar.vue";
 import PlaybackBar from "./components/PlaybackBar.vue";
 import NotationGuide from "./components/NotationGuide.vue";
+import FingerTrickTrainer from "./components/FingerTrickTrainer.vue";
 import AlgorithmLibrary from "./components/AlgorithmLibrary.vue";
 import PracticePanel from "./components/PracticePanel.vue";
 import SightRead from "./components/SightRead.vue";
@@ -30,6 +31,7 @@ const tabs = [
   { key: "demo", label: "观看演示", icon: "▶" },
   { key: "play", label: "玩魔方", icon: "🎮" },
   { key: "notation", label: "符号教学", icon: "✱" },
+  { key: "trick", label: "手法练习", icon: "🤙" },
   { key: "practice", label: "跟练打分", icon: "✎" },
   { key: "recog", label: "识别训练", icon: "❑" },
   { key: "sightread", label: "读谱执行", icon: "♪" },
@@ -171,6 +173,11 @@ watch(activeTab, (tab) => {
         <!-- 符号教学 -->
         <div v-show="activeTab === 'notation'">
           <NotationGuide />
+        </div>
+
+        <!-- 手法练习 -->
+        <div v-show="activeTab === 'trick'">
+          <FingerTrickTrainer />
         </div>
 
         <!-- 跟练 -->
