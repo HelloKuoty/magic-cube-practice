@@ -2,8 +2,44 @@
 import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { settings } from "../cube/settings.js";
 import { solveLastLayer } from "../cube/llsolver.js";
+import { solveCube } from "../cube/solver.js";
 import { cubeStore } from "../cube/store.js";
+import { api } from "../api.js";
 import MoveBar from "./MoveBar.vue";
+
+// 两种模式:ll = 涂最后一层求解;full = 输入整方打乱求 CFOP 全程
+const mode = ref("ll");
+const scrambleInput = ref("");
+const full = ref(null);
+const fullBusy = ref(false);
+const fullDemoed = ref(false);
+async function randScramble() {
+  const s = await api.scramble(22);
+  scrambleInput.value = s.moves;
+  full.value = null; fullDemoed.value = false;
+  cubeStore.loadSequence("", { setupMoves: s.moves });
+}
+const ollAlgs = ref([]);
+async function ensureOll() {
+  if (!ollAlgs.value.length) {
+    try { const list = await api.algorithms({ category: "oll" }); ollAlgs.value = list.map((a) => a.moves); } catch {}
+  }
+}
+function solveFull() {
+  const scr = scrambleInput.value.trim();
+  if (fullBusy.value || !scr) return;
+  fullBusy.value = true; full.value = null; fullDemoed.value = false;
+  ensureOll().then(() => setTimeout(() => {
+    try { full.value = solveCube(scr, settings.colors, ollAlgs.value); }
+    catch (e) { full.value = { error: String(e && e.message || e) }; }
+    fullBusy.value = false;
+  }, 20));
+}
+function loadFullDemo() {
+  if (!full.value || full.value.error) return;
+  cubeStore.loadSequence(full.value.moves, { setupMoves: scrambleInput.value.trim() });
+  fullDemoed.value = true;
+}
 
 // 默认前两层已还原。用户把最后一层(顶面 + 四周顶排)按实体魔方涂好,点求解出公式。
 const rootRef = ref(null);
@@ -94,6 +130,12 @@ function loadDemo() {
 
 <template>
   <div class="lls" ref="rootRef">
+    <div class="modesw">
+      <button class="seg" :class="{ on: mode === 'll' }" @click="mode = 'll'">最后一层(涂色)</button>
+      <button class="seg" :class="{ on: mode === 'full' }" @click="mode = 'full'">整方还原(输入打乱)</button>
+    </div>
+
+    <div v-show="mode === 'll'">
     <p class="muted intro">
       默认<b>前两层已还原</b>。把魔方某面朝你当「前」,照实体魔方把最后一层涂好,点「求解」给出公式。
     </p>
@@ -166,6 +208,41 @@ function loadDemo() {
         <p v-else class="muted small tip">点「载入到 3D」可单步/播放核对。照公式拧实体魔方时,保持和涂色时一样的朝向。</p>
       </template>
     </div>
+    </div><!-- /ll mode -->
+
+    <!-- 整方还原模式 -->
+    <div v-show="mode === 'full'" class="full">
+      <p class="muted intro">输入你魔方的<b>打乱公式</b>(或随机生成),给出 十字 → F2L → OLL → PLL 全程分步解法。</p>
+      <div class="fctrl">
+        <button @click="randScramble">🎲 随机打乱</button>
+        <button class="primary" @click="solveFull" :disabled="fullBusy || !scrambleInput.trim()">{{ fullBusy ? "求解中…" : "求解整方" }}</button>
+      </div>
+      <textarea v-model="scrambleInput" class="scrin" rows="2" placeholder="例如  R U R' U' F2 D L2 B …(用空格分隔)"></textarea>
+
+      <div v-if="full && full.error" class="err">⚠ {{ full.error }}</div>
+      <div v-else-if="full" class="result">
+        <div class="rhead">
+          <span class="ok">全程 {{ full.count }} 步<span v-if="!full.solved" class="warnt">(未完全还原,请检查打乱)</span></span>
+          <button class="mini" @click="loadFullDemo">{{ fullDemoed ? "↻ 重新载入" : "▶ 载入到 3D" }}</button>
+        </div>
+        <div v-for="(s, i) in full.steps" :key="i" class="stp">
+          <span class="lab">{{ s.label }}</span>
+          <span class="mv">{{ s.seq }}</span>
+        </div>
+        <div v-if="fullDemoed" class="demo">
+          <div class="stepper">
+            <button @click="cubeStore.reset()" :disabled="cubeStore.busy" title="回到打乱态">⟲</button>
+            <button @click="cubeStore.prev()" :disabled="cubeStore.busy || cubeStore.cursor === 0">◀ 上一步</button>
+            <button v-if="!cubeStore.playing" class="primary" @click="cubeStore.play()" :disabled="cubeStore.busy || cubeStore.cursor >= cubeStore.parsed.length">▶ 播放</button>
+            <button v-else class="primary" @click="cubeStore.pause()">⏸</button>
+            <button @click="cubeStore.next()" :disabled="cubeStore.busy || cubeStore.cursor >= cubeStore.parsed.length">下一步 ▶</button>
+          </div>
+          <MoveBar />
+          <p class="muted small tip">从打乱态开始一步步拧,按上面的 十字 / F2L / OLL / PLL 阶段对照学习。</p>
+        </div>
+        <p v-else class="muted small tip">点「载入到 3D」从打乱态单步/播放核对全程。</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -201,4 +278,11 @@ function loadDemo() {
 .stepper { display: flex; gap: 6px; flex-wrap: wrap; }
 .stepper button { padding: 7px 10px; font-size: 13px; }
 .tip { line-height: 1.6; margin: 2px 0 0; }
+.modesw { display: flex; gap: 6px; }
+.seg { flex: 1; padding: 9px; font-size: 14px; }
+.seg.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.full { display: flex; flex-direction: column; gap: 12px; }
+.fctrl { display: flex; gap: 8px; }
+.scrin { width: 100%; font-family: "Consolas", monospace; font-size: 14px; resize: vertical; }
+.warnt { color: var(--warn); font-weight: 400; font-size: 12px; }
 </style>

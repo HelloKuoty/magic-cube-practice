@@ -1,7 +1,7 @@
 // OLL 覆盖校验器:读取 algorithms.js 里的 OLL,逐条校验「只动顶层、不破坏前两层」(checkLL),
 // 并把每条映射到 57 种标准 OLL 情形之一,报告 覆盖/缺失/重复。用法: node scripts/check-oll.mjs
 import { algorithms } from "../backend/src/data/algorithms.js";
-import { parseSequence } from "../frontend/src/cube/moves.js";
+import { parseSequence, invertSequence } from "../frontend/src/cube/moves.js";
 
 const AX = { x: 0, y: 1, z: 2 };
 const ID = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
@@ -98,7 +98,8 @@ for (const a of oll) {
   const cube = makeCube();
   apply(cube, toks);
   if (!checkLL(cube)) { llFail.push(a.id); continue; }
-  const sig = ollSig(toks);
+  // 公式所解的情形 = inverse(alg)·solved(与 app 识别图一致),用它的签名归类到 57 标准情形
+  const sig = ollSig(invertSequence(toks));
   (covered.get(sig) || covered.set(sig, []).get(sig)).push(a.id);
 }
 console.log(`OLL 条数: ${oll.length} | checkLL 失败: ${llFail.length} | 覆盖情形: ${[...covered].filter(([s]) => REF.has(s)).length}/57`);

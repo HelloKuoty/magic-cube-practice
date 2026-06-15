@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed } from "vue";
 import CubeViewer from "./components/CubeViewer.vue";
 import MoveBar from "./components/MoveBar.vue";
 import PlaybackBar from "./components/PlaybackBar.vue";
@@ -7,10 +7,21 @@ import NotationGuide from "./components/NotationGuide.vue";
 import AlgorithmLibrary from "./components/AlgorithmLibrary.vue";
 import PracticePanel from "./components/PracticePanel.vue";
 import SightRead from "./components/SightRead.vue";
+import CrossTrainer from "./components/CrossTrainer.vue";
+import RecognitionTrainer from "./components/RecognitionTrainer.vue";
+import SpeedTimer from "./components/SpeedTimer.vue";
 import LastLayerSolver from "./components/LastLayerSolver.vue";
 import { cubeStore } from "./cube/store.js";
+import { srsState } from "./cube/srs.js";
 import { settings, COLOR_HEX, COLOR_NAME, BOTTOM_CHOICES } from "./cube/settings.js";
 import { api } from "./api.js";
+
+// 复习提醒:已学过且到期的公式数(显示在「识别训练」标签上)
+const tick = ref(Date.now());
+setInterval(() => (tick.value = Date.now()), 30000);
+const reviewDue = computed(() =>
+  Object.values(srsState.cards).filter((c) => c.dueAt <= tick.value).length
+);
 
 const showColors = ref(false);
 
@@ -18,8 +29,11 @@ const tabs = [
   { key: "demo", label: "观看演示", icon: "▶" },
   { key: "notation", label: "符号教学", icon: "✱" },
   { key: "practice", label: "跟练打分", icon: "✎" },
+  { key: "recog", label: "识别训练", icon: "❑" },
   { key: "sightread", label: "读谱执行", icon: "♪" },
-  { key: "solver", label: "还原助手", icon: "✚" },
+  { key: "cross", label: "十字训练", icon: "✚" },
+  { key: "timer", label: "计时器", icon: "⏱" },
+  { key: "solver", label: "还原助手", icon: "✜" },
   { key: "library", label: "公式库", icon: "▤" },
 ];
 const activeTab = ref("demo");
@@ -88,6 +102,7 @@ watch(activeTab, (tab) => {
           @click="activeTab = t.key"
         >
           <span class="ic">{{ t.icon }}</span>{{ t.label }}
+          <span v-if="t.key === 'recog' && reviewDue" class="badge">{{ reviewDue }}</span>
         </button>
         <div class="colorbox">
           <button class="tab" :class="{ active: showColors }" @click="showColors = !showColors">
@@ -149,9 +164,24 @@ watch(activeTab, (tab) => {
           <PracticePanel :alg="currentAlg" />
         </div>
 
+        <!-- 识别训练 -->
+        <div v-show="activeTab === 'recog'">
+          <RecognitionTrainer />
+        </div>
+
         <!-- 读谱执行 -->
         <div v-show="activeTab === 'sightread'">
           <SightRead />
+        </div>
+
+        <!-- 十字训练 -->
+        <div v-show="activeTab === 'cross'">
+          <CrossTrainer />
+        </div>
+
+        <!-- 计时器 -->
+        <div v-show="activeTab === 'timer'">
+          <SpeedTimer />
         </div>
 
         <!-- 还原助手(手动输入最后一层 -> 出公式) -->
@@ -198,6 +228,7 @@ watch(activeTab, (tab) => {
 .tab { display: flex; align-items: center; gap: 6px; padding: 9px 14px; }
 .tab .ic { opacity: 0.8; }
 .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.badge { background: var(--warn); color: #1a1205; font-size: 11px; font-weight: 800; border-radius: 999px; padding: 0 6px; min-width: 16px; text-align: center; }
 
 .colorbox { position: relative; }
 .colorpanel {

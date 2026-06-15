@@ -3,7 +3,7 @@
 //   - F2L:施加后,底面十字必须完好,且最多只扰动一个角槽(标准 F2L 解的是右前 FR 槽)。
 // 用法: node scripts/verify-algs.mjs
 import { algorithms } from "../backend/src/data/algorithms.js";
-import { parseSequence } from "../frontend/src/cube/moves.js";
+import { parseSequence, invertSequence } from "../frontend/src/cube/moves.js";
 
 const AXIS_IDX = { x: 0, y: 1, z: 2 };
 const ID = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
@@ -126,12 +126,13 @@ for (const a of algorithms) {
       .map((cu) => `${cu.home.join(",")}->${cu.pos.join(",")}${isId(cu.or) ? "" : "*"}`);
     fails.push(`[${a.category}] ${a.id} "${a.name}"  ${a.moves}\n      乱块: ${bad.join("  ")}`);
   }
-  // 收集签名查重
+  // 收集签名查重(OLL 用逆约定:公式所解的情形 = inverse(alg)·solved,与识别图一致)
   if (a.category === "oll") {
-    const sig = ollSig(toks);
+    const sig = ollSig(invertSequence(toks));
     (ollSigs.get(sig) || ollSigs.set(sig, []).get(sig)).push(a.id);
   } else if (a.category === "f2l") {
-    const sig = f2lSig(toks);
+    // 同样用逆约定:公式所解的情形 = inverse(alg)·solved(与识别图一致)
+    const sig = f2lSig(invertSequence(toks));
     (f2lSigs.get(sig) || f2lSigs.set(sig, []).get(sig)).push(a.id);
   }
 }

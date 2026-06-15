@@ -46,7 +46,7 @@ export const at = (cube, p) => cube.find((c) => eqV(c.pos, p));
 export const ID = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
 // 某块在 worldDir 方向露出的贴纸颜色
-function stickerColor(cu, worldDir, colors) {
+export function stickerColor(cu, worldDir, colors) {
   const ld = mvT(cu.or, worldDir); // 该块的本地方向
   const h = cu.home;
   if (ld[0] === 1) return h[0] === 1 ? colors.R : colors.inner;
@@ -75,4 +75,18 @@ export function recognition(movesStr, colors) {
   const left = [-1, 0, 1].map((z) => stickerColor(at([-1, 1, z]), [-1, 0, 0], colors));
   const right = [-1, 0, 1].map((z) => stickerColor(at([1, 1, z]), [1, 0, 0], colors));
   return { U, back, front, left, right };
+}
+
+// F2L 识别:返回 U / F / R 三个面各 3×3 的贴纸(立体 U-F-R 视角用)。
+// U: 行 r=0..2 对应 z=-1..1(后→前),列 c=0..2 对应 x=-1..1(左→右)。
+// F: 行=上→下(y=1,0,-1),列=左→右(x=-1,0,1),朝向 +z。
+// R: 行=上→下(y=1,0,-1),列=左→右(从右面看,前 z=1 在左 → z=1,0,-1),朝向 +x。
+export function f2lRecognition(movesStr, colors) {
+  const cube = makeCube();
+  apply(cube, invertSequence(parseSequence(movesStr)));
+  const at = (p) => cube.find((c) => eqV(c.pos, p));
+  const U = [-1, 0, 1].map((z) => [-1, 0, 1].map((x) => stickerColor(at([x, 1, z]), [0, 1, 0], colors)));
+  const F = [1, 0, -1].map((y) => [-1, 0, 1].map((x) => stickerColor(at([x, y, 1]), [0, 0, 1], colors)));
+  const R = [1, 0, -1].map((y) => [1, 0, -1].map((z) => stickerColor(at([1, y, z]), [1, 0, 0], colors)));
+  return { U, F, R };
 }

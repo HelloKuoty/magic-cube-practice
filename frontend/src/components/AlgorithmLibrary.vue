@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from "vue";
 import { api } from "../api.js";
 import CaseDiagram from "./CaseDiagram.vue";
+import F2LDiagram from "./F2LDiagram.vue";
 
 const emit = defineEmits(["select"]);
 
@@ -58,7 +59,8 @@ function catName(key) {
 
     <div class="list">
       <div v-for="a in filtered" :key="a.id" class="item">
-        <CaseDiagram :moves="a.moves" :size="58" class="thumb" title="起始情形(最后一层)" />
+        <F2LDiagram v-if="a.category === 'f2l'" :moves="a.moves" :size="62" class="thumb" title="起始情形(F2L 立体图)" />
+        <CaseDiagram v-else :moves="a.moves" :size="58" class="thumb" title="起始情形(最后一层)" />
         <div class="info">
           <div class="line1">
             <span class="aname">{{ a.name }}</span>

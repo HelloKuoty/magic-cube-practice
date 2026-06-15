@@ -24,7 +24,7 @@ export const cubeStore = reactive({
     if (this._pending) {
       const p = this._pending;
       this._pending = null;
-      this.loadSequence(p.movesStr, { inverseSetup: p.inverseSetup });
+      this.loadSequence(p.movesStr, { inverseSetup: p.inverseSetup, setupMoves: p.setupMoves });
     }
   },
 
@@ -32,23 +32,29 @@ export const cubeStore = reactive({
     return this.parsed.map((p) => p.canonical);
   },
 
-  loadSequence(movesStr, { inverseSetup = this.inverseSetup } = {}) {
+  setupMoves: "", // 可选:开播前先「瞬间」施加的铺场序列(如打乱),正向播放 parsed 即在此基础上进行
+
+  loadSequence(movesStr, { inverseSetup = this.inverseSetup, setupMoves = "" } = {}) {
     if (!this.instance) {
-      this._pending = { movesStr, inverseSetup };
+      this._pending = { movesStr, inverseSetup, setupMoves };
       return;
     }
     this.pause();
     this.movesStr = movesStr;
     this.parsed = parseSequence(movesStr);
-    this.inverseSetup = inverseSetup;
+    this.setupMoves = setupMoves;
+    this.inverseSetup = setupMoves ? false : inverseSetup; // 显式铺场优先
     this.cursor = 0;
     this.instance.reset();
-    if (inverseSetup) this._applySetup();
+    this._applySetup();
   },
 
   _applySetup() {
-    const inv = invertSequence(this.parsed);
-    for (const t of inv) this.instance.applyInstant(t);
+    if (this.setupMoves) {
+      for (const t of parseSequence(this.setupMoves)) this.instance.applyInstant(t);
+    } else if (this.inverseSetup) {
+      for (const t of invertSequence(this.parsed)) this.instance.applyInstant(t);
+    }
   },
 
   async setInverseSetup(val) {
