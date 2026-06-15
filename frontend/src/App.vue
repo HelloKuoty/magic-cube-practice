@@ -10,6 +10,7 @@ import SightRead from "./components/SightRead.vue";
 import CrossTrainer from "./components/CrossTrainer.vue";
 import RecognitionTrainer from "./components/RecognitionTrainer.vue";
 import SpeedTimer from "./components/SpeedTimer.vue";
+import PlayCube from "./components/PlayCube.vue";
 import LastLayerSolver from "./components/LastLayerSolver.vue";
 import { cubeStore } from "./cube/store.js";
 import { srsState } from "./cube/srs.js";
@@ -27,6 +28,7 @@ const showColors = ref(false);
 
 const tabs = [
   { key: "demo", label: "观看演示", icon: "▶" },
+  { key: "play", label: "玩魔方", icon: "🎮" },
   { key: "notation", label: "符号教学", icon: "✱" },
   { key: "practice", label: "跟练打分", icon: "✎" },
   { key: "recog", label: "识别训练", icon: "❑" },
@@ -75,8 +77,15 @@ async function scramble() {
 
 // 切换标签时整理魔方状态
 watch(activeTab, (tab) => {
+  // 只有「玩魔方」开启拖动转层 + 面标,其它模式拖动只转视角
+  if (cubeStore.instance) {
+    cubeStore.instance.interactive = tab === "play";
+    cubeStore.instance.showLabels(tab === "play");
+  }
   if (tab === "notation") {
     cubeStore.loadSequence("", { inverseSetup: false }); // 还原成纯净魔方
+  } else if (tab === "play") {
+    cubeStore.loadSequence("", { inverseSetup: false }); // 进入自由玩:先给一个干净魔方
   } else if (tab === "demo" && currentAlg.value) {
     cubeStore.loadSequence(currentAlg.value.moves, { inverseSetup: false });
   }
@@ -152,6 +161,11 @@ watch(activeTab, (tab) => {
           <p class="muted small tip">
             想换公式?去「公式库」标签挑一个,点「演示」即可载入这里。
           </p>
+        </div>
+
+        <!-- 玩魔方 -->
+        <div v-show="activeTab === 'play'">
+          <PlayCube />
         </div>
 
         <!-- 符号教学 -->

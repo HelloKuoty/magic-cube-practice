@@ -96,3 +96,19 @@ export function invertToken(tok) {
 export function invertSequence(tokens) {
   return [...tokens].reverse().map(invertToken);
 }
+
+// 前端本地打乱生成(不依赖后端):避免相邻同面、避免 R L R 这类冗余
+export function randomScramble(n = 20) {
+  const F = ["U", "D", "L", "R", "F", "B"], MOD = ["", "'", "2"];
+  const OPP = { U: "D", D: "U", L: "R", R: "L", F: "B", B: "F" };
+  const out = [];
+  let prev = null, pp = null;
+  while (out.length < n) {
+    const f = F[Math.floor(Math.random() * 6)];
+    if (f === prev) continue;
+    if (f === OPP[prev] && f === pp) continue;
+    out.push(f + MOD[Math.floor(Math.random() * 3)]);
+    pp = prev; prev = f;
+  }
+  return out.join(" ");
+}
