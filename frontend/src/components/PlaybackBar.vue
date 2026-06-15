@@ -29,8 +29,9 @@ function toggleInverse(e) {
       <button
         @click="cubeStore.next()"
         :disabled="cubeStore.busy || cubeStore.cursor >= cubeStore.parsed.length"
+        title="快捷键:空格"
       >
-        下一步 ▶
+        下一步 ▶ <kbd>空格</kbd>
       </button>
     </div>
 
@@ -88,5 +89,13 @@ function toggleInverse(e) {
 }
 .inv input {
   accent-color: var(--accent);
+}
+kbd {
+  font-size: 10px;
+  opacity: 0.7;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 2px;
 }
 </style>

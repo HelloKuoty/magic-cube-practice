@@ -50,8 +50,19 @@ const currentAlg = ref({
   desc: "翻顶层角块的招牌公式。点上方按钮播放,看每一步怎么转。",
 });
 
+// 空格 = 下一步(仅在用播放步进的标签;计时器/识别训练自己占用空格,排除)
+const STEP_TABS = ["demo", "sightread", "cross", "solver"];
+function onSpaceNext(e) {
+  if (e.code !== "Space" || e.repeat) return;
+  if (!STEP_TABS.includes(activeTab.value)) return;
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA") return;
+  e.preventDefault();
+  cubeStore.next();
+}
 onMounted(() => {
   cubeStore.loadSequence(currentAlg.value.moves, { inverseSetup: false });
+  window.addEventListener("keydown", onSpaceNext);
 });
 
 function handleSelect(alg, mode) {
