@@ -3,12 +3,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api.js";
 import { cubeStore } from "../cube/store.js";
 import { srsState, grade, summary, nextCard, statusOf } from "../cube/srs.js";
+import { recogSession, recogAlgs } from "../cube/session.js";
 import CaseDiagram from "./CaseDiagram.vue";
 import F2LDiagram from "./F2LDiagram.vue";
 
 // 识别训练:闪识别图 → 回想公式 → 看答案 → 自评(间隔重复排期)。
+// all(公式)与 session(本次计数)放在 session.js 的模块级,切换标签(v-if 重挂载)也不丢。
 const rootRef = ref(null);
-const all = ref([]);
+const all = recogAlgs;
+const session = recogSession;
 const deck = ref("oll"); // oll | pll | f2l | mix
 const onlyDue = ref(false);
 const current = ref(null);
@@ -16,7 +19,6 @@ const revealed = ref(false);
 const shownAt = ref(0);
 const recogMs = ref(0);
 const now = ref(0);
-const session = ref({ count: 0, times: [], good: 0 });
 
 const DECKS = [
   { key: "oll", label: "OLL" },
@@ -38,7 +40,7 @@ const fmt = (ms) => (ms / 1000).toFixed(1) + "s";
 
 let timer = null;
 onMounted(async () => {
-  all.value = await api.algorithms();
+  if (!all.value.length) all.value = await api.algorithms(); // 已缓存就不再请求后端
   pick();
   timer = setInterval(() => (now.value = Date.now()), 100);
   window.addEventListener("keydown", onKey);
