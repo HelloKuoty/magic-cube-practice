@@ -3,7 +3,7 @@
 import { solveCross } from "./cross.js";
 import { solveLastLayer } from "./llsolver.js";
 import { makeCube, apply, eqV, AX, rot, mv, mm, ID, stickerColor } from "./model.js";
-import { parseSequence } from "./moves.js";
+import { parseSequence, parseSequenceStrict } from "./moves.js";
 
 const CROSS = [[0, -1, 1], [1, -1, 0], [0, -1, -1], [-1, -1, 0]];
 const SLOTS = [
@@ -171,8 +171,14 @@ function readLL(cube, C) {
 // 入口:给定打乱串 + 配色(+ 可选 57 OLL 招式串数组用于 1-look 翻面)。
 // 返回 { steps:[{label,seq}], moves, count, solved } 或 { error }
 export function solveCube(scrambleStr, colors, ollAlgs = []) {
+  let scrambleTokens;
+  try {
+    scrambleTokens = parseSequenceStrict(scrambleStr);
+  } catch (e) {
+    return { error: e.message || String(e) };
+  }
   const cube = makeCube();
-  apply(cube, parseSequence(scrambleStr));
+  apply(cube, scrambleTokens);
   const steps = [];
   const pushStep = (label, seq) => {
     seq = (seq || "").replace(/\s+/g, " ").trim();

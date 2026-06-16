@@ -72,16 +72,35 @@ export function parseToken(raw) {
   };
 }
 
-// 解析整串
-export function parseSequence(str) {
+function sequenceTokens(str) {
   if (!str) return [];
   return str
     .replace(/[()]/g, " ")
     .split(/\s+/)
     .map((t) => t.trim())
-    .filter(Boolean)
-    .map(parseToken)
     .filter(Boolean);
+}
+
+// 解析整串(宽松模式):忽略无法识别的 token,用于内置公式兼容旧数据。
+export function parseSequence(str) {
+  return sequenceTokens(str).map(parseToken).filter(Boolean);
+}
+
+// 解析整串(严格模式):用户输入必须全部可识别,否则抛出带 invalidTokens 的错误。
+export function parseSequenceStrict(str) {
+  const parsed = [];
+  const invalid = [];
+  for (const raw of sequenceTokens(str)) {
+    const tok = parseToken(raw);
+    if (tok) parsed.push(tok);
+    else invalid.push(raw);
+  }
+  if (invalid.length) {
+    const err = new Error(`无法识别的转动符号: ${invalid.join(", ")}`);
+    err.invalidTokens = invalid;
+    throw err;
+  }
+  return parsed;
 }
 
 // 求一个 token 的逆操作(用于单步回退、逆操作打乱)
