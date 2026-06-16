@@ -4,6 +4,17 @@ import vue from "@vitejs/plugin-vue";
 // 前后端分离:开发时把 /api 代理到后端 3001 端口
 export default defineConfig({
   plugins: [vue()],
+  esbuild: {
+    target: "esnext",
+  },
+  build: {
+    target: "esnext",
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "esnext",
+    },
+  },
   server: {
     host: "0.0.0.0", // 监听所有网卡
     port: 5173,
